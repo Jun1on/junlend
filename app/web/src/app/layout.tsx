@@ -3,7 +3,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { JotaiProvider } from '@/context/Jotai'
 import { ThemeProvider } from '@/context/ThemeProvider'
 import { Web3Provider } from '@/context/Web3'
-import { SITE_DESCRIPTION, SITE_EMOJI, SITE_INFO, SITE_NAME, SITE_URL, SOCIAL_TWITTER } from '@/utils/site'
+import { SITE_DESCRIPTION, SITE_EMOJI, SITE_NAME, SITE_URL, SOCIAL_TWITTER } from '@/utils/site'
 import { WALLETCONNECT_CONFIG } from '@/utils/web3'
 import type { Metadata, Viewport } from 'next'
 import { headers } from 'next/headers'
@@ -14,7 +14,7 @@ import '../assets/globals.css'
 export const metadata: Metadata = {
   applicationName: SITE_NAME,
   title: {
-    default: `${SITE_NAME} · ${SITE_INFO}`,
+    default: `${SITE_NAME}`,
     template: `${SITE_NAME} · %s`,
   },
   metadataBase: new URL(SITE_URL),

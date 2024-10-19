@@ -1,4 +1,4 @@
-import { SITE_EMOJI, SITE_INFO, SITE_NAME } from '@/utils/site'
+import { SITE_EMOJI, SITE_NAME } from '@/utils/site'
 import { ImageResponse } from 'next/og'
 
 // Route segment config
@@ -20,7 +20,7 @@ export default async function Image() {
         <h1 tw='text-8xl'>
           {SITE_EMOJI} {SITE_NAME}
         </h1>
-        <p tw='text-4xl'>{SITE_INFO}</p>
+        <p tw='text-4xl'>{'asdf'}</p>
       </div>
     )
   )

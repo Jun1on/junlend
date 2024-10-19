@@ -1,9 +1,8 @@
-export const SITE_EMOJI = '⚡'
-export const SITE_NAME = 'Nexth'
-export const SITE_INFO = 'Quickly ship Web3 Apps'
-export const SITE_DESCRIPTION =
-  'A Next.js + Ethereum starter kit with Viem, Wagmi, Web3Modal, SIWE, Tailwind, ShadCN and more!'
-export const SITE_URL = 'https://nexth.vercel.app'
+export const SITE_EMOJI = '🔵'
+export const SITE_NAME = 'JunLend'
+export const SITE_INFO = 'a junion project'
+export const SITE_DESCRIPTION = 'Consolidate global lending positions.'
+export const SITE_URL = 'https://jun.farm'
 
-export const SOCIAL_TWITTER = 'wslyvh'
-export const SOCIAL_GITHUB = 'wslyvh/nexth'
+export const SOCIAL_TWITTER = 'jun1on'
+export const SOCIAL_GITHUB = 'jun1on/junlend'

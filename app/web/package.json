@@ -36,6 +36,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "dayjs": "^1.11.13",
+    "framer-motion": "^11.11.9",
     "i18next": "^23.15.1",
     "iron-session": "^6.3.1",
     "jotai": "^2.9.3",
