@@ -1,15 +1,4 @@
-# Nexth Monolith
-
-This is a monolith-style repository for the Nexth project. The main application code is located in the `app` directory.
-
-## Structure
-
-- `app/`: Contains the main application code
-- `README.md`: This file
-
-## Getting Started
-
-1. Navigate to the `app` directory
-2. Follow the instructions in the app's README.md file
-
-For more information, please refer to the documentation within the `app` directory.
+# Deployments
+Oracle: 0x959Df6B5eCeB85D0484594A89A17d821F804a485
+JunLend: 0x8fE00F3Add95CDB44e988751431Cd3229E133AEc
+LiquidationHook: 0xCf4E2c0f54698Cef8a6Fe66Deb29E8E9c9bC0880
