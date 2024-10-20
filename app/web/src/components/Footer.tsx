@@ -7,9 +7,9 @@ export function Footer() {
   return (
     <>
       <footer className='footer bg-neutral text-neutral-content fixed bottom-0 left-0 right-0 flex items-center justify-between p-4'>
-        <div className='flex flex-row gap-2'>
+        {/* <div className='flex flex-row gap-2'>
           <Image src='/icons/eth-icon.png' alt='Site Logo' height={24} width={24} /> {SITE_INFO}
-        </div>
+        </div> */}
         <div className='flex gap-4'>
           <LinkComponent href={`https://github.com/${SOCIAL_GITHUB}`}>
             <FaGithub />

@@ -30,26 +30,31 @@ contract HookMiningSample is Script {
     function setUp() public {
         vm.startBroadcast();
 
-        NaiveOracle oracle = new NaiveOracle();
-        Junlend junlend = new Junlend(address(oracle));
+        //NaiveOracle oracle = new NaiveOracle();
 
-        uint160 flags = uint160(
-            Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
-        );
-        address CREATE2_DEPLOYER = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
-        (address hookAddress, bytes32 salt) = HookMiner.find(
-            CREATE2_DEPLOYER,
-            flags,
-            type(LiquidationHook).creationCode,
-            abi.encode(address(manager), junlend)
-        );
-
-        LiquidationHook hook = new LiquidationHook{salt: salt}(
-            manager,
-            junlend
-        );
-        require(address(hook) == hookAddress, "hook address mismatch");
+        Junlend junlend = new Junlend(address(0));
         vm.stopBroadcast();
+
+        // vm.stopBroadcast();
+
+        // uint160 flags = uint160(
+        //     Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
+        // );
+        // address CREATE2_DEPLOYER = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
+        // (address hookAddress, bytes32 salt) = HookMiner.find(
+        //     CREATE2_DEPLOYER,
+        //     flags,
+        //     type(LiquidationHook).creationCode,
+        //     abi.encode(address(manager), junlend)
+        // );
+
+        // vm.startBroadcast();
+        // LiquidationHook hook = new LiquidationHook{salt: salt}(
+        //     manager,
+        //     junlend
+        // );
+        // require(address(hook) == hookAddress, "hook address mismatch");
+        // vm.stopBroadcast();
     }
 
     function run() public {}
