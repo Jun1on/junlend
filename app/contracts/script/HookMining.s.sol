@@ -16,6 +16,8 @@ import {Currency} from "v4-core/types/Currency.sol";
 import {HookMiner} from "../test/HookMiner.sol";
 import {LiquidationHook} from "../src/LiquidationHook.sol";
 import "forge-std/console.sol";
+import {NaiveOracle} from "src/NaiveOracle.sol";
+import {Junlend} from "../src/Junlend.sol";
 
 contract HookMiningSample is Script {
     PoolManager manager =
@@ -26,18 +28,26 @@ contract HookMiningSample is Script {
         PoolModifyLiquidityTest(0x1f03f235e371202e49194F63C7096F5697848822);
 
     function setUp() public {
-        uint160 flags = Hooks.BEFORE_INITIALIZE_FLAG;
+        vm.startBroadcast();
 
+        NaiveOracle oracle = new NaiveOracle();
+        Junlend junlend = new Junlend(address(oracle));
+
+        uint160 flags = uint160(
+            Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
+        );
         address CREATE2_DEPLOYER = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
         (address hookAddress, bytes32 salt) = HookMiner.find(
             CREATE2_DEPLOYER,
             flags,
             type(LiquidationHook).creationCode,
-            abi.encode(address(manager))
+            abi.encode(address(manager), junlend)
         );
 
-        vm.startBroadcast();
-        LiquidationHook hook = new LiquidationHook{salt: salt}(manager);
+        LiquidationHook hook = new LiquidationHook{salt: salt}(
+            manager,
+            junlend
+        );
         require(address(hook) == hookAddress, "hook address mismatch");
         vm.stopBroadcast();
     }
