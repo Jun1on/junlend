@@ -4,6 +4,8 @@ pragma solidity ^0.8.26;
 import {console} from "forge-std/Test.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
 interface IPool {
     function supply(
@@ -26,31 +28,22 @@ interface IPool {
         uint16 referralCode,
         address onBehalfOf
     ) external;
-}
 
-interface IVault {
-    function flashLoan(
-        IFlashLoanRecipient recipient,
-        IERC20[] memory tokens,
-        uint256[] memory amounts,
-        bytes memory userData
+    function repay(
+        address asset,
+        uint256 amount,
+        uint256 interestRateMode,
+        address onBehalfOf
     ) external;
 }
+import {TransientStateLibrary} from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
 
-interface IFlashLoanRecipient {
-    function receiveFlashLoan(
-        IERC20[] memory tokens,
-        uint256[] memory amounts,
-        uint256[] memory feeAmounts,
-        bytes memory userData
-    ) external;
-}
-
-contract Migrator is IFlashLoanRecipient {
-    IVault private constant vault =
-        IVault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
+contract Migrator {
+    using TransientStateLibrary for IPoolManager;
+    IPoolManager private constant manager =
+        IPoolManager(0x8C4BcBE6b9eF47855f97E675296FA3F6fafa5F1A);
     IPool private constant pool =
-        IPool(0x4e033931ad43597d96D6bcc25c280717730B58B1);
+        IPool(0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951);
     IERC20 public constant wbtc =
         IERC20(0x29f2D40B0605204364af54EC677bD022dA425d03);
     IERC20 public constant awbtc =
@@ -59,26 +52,44 @@ contract Migrator is IFlashLoanRecipient {
         IERC20(0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8);
     IERC20 public constant ausdc =
         IERC20(0x16dA4541aD1807f4443d92D26044C1147406EB80);
+    uint256 public constant FLASHLOAN_AMOUNT = 10_000e6;
 
-    constructor() payable {
+    constructor() {
         wbtc.approve(address(pool), type(uint256).max);
         usdc.approve(address(pool), type(uint256).max);
     }
 
-    function migrate(address collateral, address debt) external {
-        // IERC20[] memory assets = new IERC20[](1);
-        // assets[0] = wsteth;
-        // uint256[] memory amounts = new uint256[](1);
-        // amounts[0] = SUPPLY_AMOUNT;
-        // vault.flashLoan(this, assets, amounts, abi.encode(amount));
+    function migrate(IERC20 collateral, IERC20 debt) external {
+        manager.unlock(abi.encode(msg.sender, collateral, debt));
     }
 
-    function receiveFlashLoan(
-        IERC20[] memory,
-        uint256[] memory,
-        uint256[] memory,
-        bytes memory userData
-    ) external override {
-        require(msg.sender == address(vault));
+    function unlockCallback(
+        bytes calldata data
+    ) external returns (bytes memory) {
+        require(msg.sender == address(manager));
+        (address sender, IERC20 collateral, IERC20 debt) = abi.decode(
+            data,
+            (address, IERC20, IERC20)
+        );
+        manager.take(
+            Currency.wrap(address(debt)),
+            address(this),
+            FLASHLOAN_AMOUNT
+        );
+        // migrate user position
+        pool.repay(address(debt), FLASHLOAN_AMOUNT, 2, sender);
+        uint256 amountRepayed = FLASHLOAN_AMOUNT -
+            debt.balanceOf(address(this));
+        collateral.transferFrom(
+            sender,
+            address(this),
+            collateral.balanceOf(sender)
+        );
+        pool.borrow(address(debt), amountRepayed, 2, 0, address(this));
+        // repay flashloan
+        manager.sync(Currency.wrap(address(debt)));
+        debt.transfer(address(manager), FLASHLOAN_AMOUNT);
+        manager.settle();
+        return bytes("");
     }
 }

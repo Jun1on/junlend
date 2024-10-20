@@ -15,7 +15,7 @@ contract MigratorTest is Test {
     uint256 mainnetFork;
 
     IPool private constant pool =
-        IPool(0x4e033931ad43597d96D6bcc25c280717730B58B1);
+        IPool(0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951);
     IERC20 public constant wbtc =
         IERC20(0x29f2D40B0605204364af54EC677bD022dA425d03);
     IERC20 public constant awbtc =
@@ -26,7 +26,7 @@ contract MigratorTest is Test {
         IERC20(0x16dA4541aD1807f4443d92D26044C1147406EB80);
 
     function setUp() public {
-        mainnetFork = vm.createSelectFork("https://rpc.ankr.com/eth");
+        mainnetFork = vm.createSelectFork("https://1rpc.io/sepolia");
         migrator = new Migrator();
         wbtc.approve(address(pool), type(uint256).max);
         awbtc.approve(address(migrator), type(uint256).max);
@@ -39,5 +39,7 @@ contract MigratorTest is Test {
 
     function testMigrate() public {
         pool.supply(address(wbtc), 1e8, address(this), 0);
+        pool.borrow(address(usdc), 10_000e6, 2, 0, address(this));
+        migrator.migrate(awbtc, usdc);
     }
 }
