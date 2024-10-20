@@ -115,8 +115,12 @@ contract Junlend {
      * @notice Liquidates a user if their health factor is below 1
      * @param user The address of the user to be liquidated
      * @param amount The amount in debt to repay
+     * @return The amount of collateral to withdraw
      */
-    function liquidate(address user, uint256 amount) external {
+    function liquidate(
+        address user,
+        uint256 amount
+    ) external returns (uint256) {
         uint256 healthFactor = getHealthFactor(user);
         require(healthFactor < 1e18, "Health factor above 1");
         usdc.transferFrom(msg.sender, address(this), amount);
@@ -132,5 +136,6 @@ contract Junlend {
         pool.withdraw(address(wbtc), amountToWithdraw, address(this));
         wbtc.transfer(msg.sender, amountToWithdraw);
         balances[user][awbtc] -= amountToWithdraw;
+        return amountToWithdraw;
     }
 }
