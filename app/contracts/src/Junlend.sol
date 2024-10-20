@@ -6,6 +6,7 @@ import {console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {IOracle} from "./IOracle.sol";
 
 interface IPool {
     function supply(
@@ -36,10 +37,9 @@ interface IPool {
         address onBehalfOf
     ) external;
 }
-import {TransientStateLibrary} from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
 
-contract Migrator {
-    using TransientStateLibrary for IPoolManager;
+contract Junlend {
+    IOracle public oracle;
     IPoolManager private constant manager =
         IPoolManager(0x8C4BcBE6b9eF47855f97E675296FA3F6fafa5F1A);
     IPool private constant pool =
@@ -54,7 +54,17 @@ contract Migrator {
         IERC20(0x16dA4541aD1807f4443d92D26044C1147406EB80);
     uint256 public constant FLASHLOAN_AMOUNT = 10_000e6;
 
-    constructor() {
+    // user => token => amount
+    mapping(address => mapping(IERC20 => uint256)) public balances;
+
+    // 75%
+    uint256 public constant LTV = 7500;
+    uint256 public constant MAX_BIPS = 10000;
+    // WBTC decimals (8) minus USDC decimals (6)
+    uint256 DECIMAL_FACTOR = 10 ** 2;
+
+    constructor(address _oracle) {
+        oracle = IOracle(_oracle);
         wbtc.approve(address(pool), type(uint256).max);
         usdc.approve(address(pool), type(uint256).max);
     }
@@ -78,18 +88,49 @@ contract Migrator {
         );
         // migrate user position
         pool.repay(address(debt), FLASHLOAN_AMOUNT, 2, sender);
-        uint256 amountRepayed = FLASHLOAN_AMOUNT -
-            debt.balanceOf(address(this));
+        uint256 amountRepaid = FLASHLOAN_AMOUNT - debt.balanceOf(address(this));
+        balances[sender][collateral] = collateral.balanceOf(sender);
+        balances[sender][debt] = amountRepaid;
         collateral.transferFrom(
             sender,
             address(this),
             collateral.balanceOf(sender)
         );
-        pool.borrow(address(debt), amountRepayed, 2, 0, address(this));
+        pool.borrow(address(debt), amountRepaid, 2, 0, address(this));
         // repay flashloan
         manager.sync(Currency.wrap(address(debt)));
         debt.transfer(address(manager), FLASHLOAN_AMOUNT);
         manager.settle();
         return bytes("");
+    }
+
+    function getHealthFactor(address user) public view returns (uint256) {
+        uint256 price = oracle.getPrice();
+        uint256 collateral = balances[user][awbtc];
+        uint256 debt = balances[user][usdc];
+        return ((collateral * price * LTV) / MAX_BIPS) / debt / DECIMAL_FACTOR;
+    }
+
+    /**
+     * @notice Liquidates a user if their health factor is below 1
+     * @param user The address of the user to be liquidated
+     * @param amount The amount in debt to repay
+     */
+    function liquidate(address user, uint256 amount) external {
+        uint256 healthFactor = getHealthFactor(user);
+        require(healthFactor < 1e18, "Health factor above 1");
+        usdc.transferFrom(msg.sender, address(this), amount);
+        pool.repay(address(usdc), amount, 2, address(this));
+        balances[user][usdc] -= amount;
+
+        // take collateral
+        uint256 liquidationPremium = (1e18 * 1e18) / healthFactor;
+        uint256 amountToWithdraw = (amount *
+            DECIMAL_FACTOR *
+            liquidationPremium) / oracle.getPrice();
+        console.log(amountToWithdraw);
+        pool.withdraw(address(wbtc), amountToWithdraw, address(this));
+        wbtc.transfer(msg.sender, amountToWithdraw);
+        balances[user][awbtc] -= amountToWithdraw;
     }
 }

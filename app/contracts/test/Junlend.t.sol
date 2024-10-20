@@ -3,14 +3,16 @@ pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IPool, Migrator} from "../src/Migrator.sol";
+import {NaiveOracle} from "../src/NaiveOracle.sol";
+import {IPool, Junlend} from "../src/Junlend.sol";
 
 interface ITestnetERC20 {
     function mint(address token, address to, uint256 amount) external;
 }
 
-contract MigratorTest is Test {
-    Migrator public migrator;
+contract JunlendTest is Test {
+    NaiveOracle public oracle;
+    Junlend public junlend;
 
     uint256 mainnetFork;
 
@@ -27,19 +29,32 @@ contract MigratorTest is Test {
 
     function setUp() public {
         mainnetFork = vm.createSelectFork("https://1rpc.io/sepolia");
-        migrator = new Migrator();
+        oracle = new NaiveOracle();
+        junlend = new Junlend(address(oracle));
         wbtc.approve(address(pool), type(uint256).max);
-        awbtc.approve(address(migrator), type(uint256).max);
+        awbtc.approve(address(junlend), type(uint256).max);
+        usdc.approve(address(junlend), type(uint256).max);
         ITestnetERC20(0xC959483DBa39aa9E78757139af0e9a2EDEb3f42D).mint(
             address(wbtc),
             address(this),
             100e8
         );
-    }
 
-    function testMigrate() public {
+        // migrate
         pool.supply(address(wbtc), 1e8, address(this), 0);
         pool.borrow(address(usdc), 10_000e6, 2, 0, address(this));
-        migrator.migrate(awbtc, usdc);
+        junlend.migrate(awbtc, usdc);
+    }
+
+    function testManualLiquidation() public {
+        console.log(junlend.getHealthFactor(address(this))); // 4.5
+        oracle.setPrice(13300e18);
+        console.log(junlend.getHealthFactor(address(this))); // 0.9975
+        junlend.liquidate(address(this), 100e6);
+        console.log(junlend.getHealthFactor(address(this))); // 0.99998
+        junlend.liquidate(address(this), 100e6);
+        console.log(junlend.getHealthFactor(address(this))); // 1.0025
+        vm.expectRevert();
+        junlend.liquidate(address(this), 100e6);
     }
 }
